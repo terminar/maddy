@@ -1,6 +1,7 @@
-FROM golang:1.23-alpine AS build-env
+FROM golang:1.25-alpine AS build-env
 
 ARG ADDITIONAL_BUILD_TAGS=""
+ENV GODEBUG=multipathtcp=0
 
 RUN set -ex && \
     apk upgrade --no-cache --available && \
@@ -19,6 +20,8 @@ RUN mkdir -p /pkg/data && \
 FROM alpine:3.21.2
 LABEL maintainer="fox.cpp@disroot.org"
 LABEL org.opencontainers.image.source=https://github.com/foxcpp/maddy
+
+ENV GODEBUG=multipathtcp=0
 
 RUN set -ex && \
     apk upgrade --no-cache --available && \
