@@ -52,6 +52,7 @@ func (l *Loader) Configure(inlineArgs []string, cfg *config.Map) error {
 		agreed         bool
 		challenge      string
 		overrideDomain string
+		resolvers      []string
 		provider       certmagic.DNSProvider
 	)
 	cfg.Bool("debug", true, false, &l.log.Debug)
@@ -67,6 +68,7 @@ func (l *Loader) Configure(inlineArgs []string, cfg *config.Map) error {
 		"", &email)
 	cfg.String("override_domain", false, false,
 		"", &overrideDomain)
+	cfg.StringList("resolvers", false, false, nil, &resolvers)
 	cfg.Bool("agreed", false, false, &agreed)
 	cfg.Enum("challenge", false, true,
 		[]string{"dns-01"}, "dns-01", &challenge)
@@ -115,6 +117,7 @@ func (l *Loader) Configure(inlineArgs []string, cfg *config.Map) error {
 			DNSManager: certmagic.DNSManager{
 				DNSProvider:    provider,
 				OverrideDomain: overrideDomain,
+				Resolvers:      resolvers,
 			},
 		}
 	default:

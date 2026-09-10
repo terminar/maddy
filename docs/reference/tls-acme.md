@@ -123,6 +123,30 @@ for explanation why this might be useful.
 
 ---
 
+### resolvers _list of str_
+Default: not set
+
+Explicit list of DNS resolvers (hostname or IP, optionally with `:port`) to
+use for the DNS-01 challenge, both to publish the TXT record's zone and to
+check that it has propagated.
+
+By default, certmagic determines the DNS provider's authoritative
+nameservers automatically by walking up the domain labels looking for an
+SOA record. This lookup only inspects the answer section of each response,
+so it can be fooled by DNS hosts (e.g. providers that only let you register
+a full domain, not an arbitrary delegated subdomain, as a zone) that reply
+to a delegated subdomain with a NODATA response carrying the parent zone's
+SOA in the authority section instead of a positive answer at the delegated
+name. When that happens, certmagic walks past the real (delegated) zone and
+ends up checking propagation against the wrong, unrelated nameservers,
+causing the challenge to time out even though the record was published
+correctly.
+
+If you hit this, set `resolvers` explicitly to your DNS provider's own
+nameservers to bypass the automatic zone/nameserver discovery entirely.
+
+---
+
 ### email _str_
 Default: not set
 
