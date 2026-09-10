@@ -142,8 +142,34 @@ ends up checking propagation against the wrong, unrelated nameservers,
 causing the challenge to time out even though the record was published
 correctly.
 
-If you hit this, set `resolvers` explicitly to your DNS provider's own
-nameservers to bypass the automatic zone/nameserver discovery entirely.
+If you hit this, set `resolvers` explicitly to bypass the automatic
+zone/nameserver discovery entirely. Prefer pointing this at a handful of
+independent public resolvers (e.g. `8.8.8.8`, `1.1.1.1`, `9.9.9.9`) rather
+than at your DNS provider's own nameservers: the provider's own
+nameservers will always answer optimistically as soon as the record is
+written there, which does not tell you anything about whether the record
+is visible to the wider internet yet (including whatever infrastructure
+the CA's own validation uses) — checking against public resolvers instead
+gives a much more realistic signal of real-world propagation.
+
+---
+
+### propagation_delay _duration_
+Default: 15s
+
+How long to wait, after publishing the DNS-01 TXT record, before even
+starting to check whether it has propagated (see `resolvers` above) and,
+in turn, before telling the CA the challenge is ready.
+
+This matters because CAs increasingly validate DNS-01 challenges from
+multiple independent network vantage points (to defend against routing
+attacks), and that secondary validation can happen very shortly after the
+CA is told the challenge is ready. If maddy's own propagation check
+succeeds (and reports readiness) faster than the record has actually
+reached the DNS infrastructure the CA's validators use, the challenge can
+fail even though the record was published correctly and does propagate
+successfully moments later. This delay adds a safety margin against that
+race. Set to `0s` to disable it.
 
 ---
 

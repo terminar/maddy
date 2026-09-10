@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/caddyserver/certmagic"
 	"github.com/foxcpp/maddy/framework/config"
@@ -17,6 +18,15 @@ import (
 )
 
 const modName = "tls.loader.acme"
+
+// defaultPropagationDelay is the wait applied right after publishing the
+// DNS-01 TXT record, before our own propagation check (and, in turn,
+// telling the CA the challenge is ready) even starts. This exists
+// because a CA's own (e.g. multi-perspective) validation may query DNS
+// infrastructure that lags behind whatever resolvers/nameservers our
+// own check uses, so signaling readiness as soon as our own check
+// passes can race the CA's validation and cause spurious failures.
+const defaultPropagationDelay = 15 * time.Second
 
 type Loader struct {
 	instName string
@@ -43,17 +53,18 @@ func (l *Loader) Configure(inlineArgs []string, cfg *config.Map) error {
 	}
 
 	var (
-		hostname       string
-		extraNames     []string
-		storePath      string
-		caPath         string
-		testCAPath     string
-		email          string
-		agreed         bool
-		challenge      string
-		overrideDomain string
-		resolvers      []string
-		provider       certmagic.DNSProvider
+		hostname         string
+		extraNames       []string
+		storePath        string
+		caPath           string
+		testCAPath       string
+		email            string
+		agreed           bool
+		challenge        string
+		overrideDomain   string
+		resolvers        []string
+		propagationDelay time.Duration
+		provider         certmagic.DNSProvider
 	)
 	cfg.Bool("debug", true, false, &l.log.Debug)
 	cfg.String("hostname", true, true, "", &hostname)
@@ -69,6 +80,7 @@ func (l *Loader) Configure(inlineArgs []string, cfg *config.Map) error {
 	cfg.String("override_domain", false, false,
 		"", &overrideDomain)
 	cfg.StringList("resolvers", false, false, nil, &resolvers)
+	cfg.Duration("propagation_delay", false, false, defaultPropagationDelay, &propagationDelay)
 	cfg.Bool("agreed", false, false, &agreed)
 	cfg.Enum("challenge", false, true,
 		[]string{"dns-01"}, "dns-01", &challenge)
@@ -115,9 +127,10 @@ func (l *Loader) Configure(inlineArgs []string, cfg *config.Map) error {
 		}
 		issuer.DNS01Solver = &certmagic.DNS01Solver{
 			DNSManager: certmagic.DNSManager{
-				DNSProvider:    provider,
-				OverrideDomain: overrideDomain,
-				Resolvers:      resolvers,
+				DNSProvider:      provider,
+				OverrideDomain:   overrideDomain,
+				Resolvers:        resolvers,
+				PropagationDelay: propagationDelay,
 			},
 		}
 	default:
